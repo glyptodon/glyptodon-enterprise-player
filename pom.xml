@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright (C) 2019 Glyptodon, Inc.
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in
+   all copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+   THE SOFTWARE.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                        http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.glyptodon.enterprise</groupId>
+    <artifactId>glyptodon-enterprise-player</artifactId>
+    <packaging>pom</packaging>
+    <version>1.1.0</version>
+    <name>glyptodon-enterprise-player</name>
+    <url>https://enterprise.glyptodon.com/</url>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <build>
+        <plugins>
+
+            <!-- Pre-cache AngularJS templates -->
+            <plugin>
+                <groupId>com.keithbranton.mojo</groupId>
+                <artifactId>angular-maven-plugin</artifactId>
+                <version>0.3.4</version>
+                <executions>
+                    <execution>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>html2js</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <sourceDir>${basedir}/src/main/webapp/app/</sourceDir>
+                    <include>**/*.html</include>
+                    <target>${basedir}/src/main/webapp/generated/templates-main/templates.js</target>
+                    <prefix>app</prefix>
+                </configuration>
+            </plugin>
+
+            <!-- Minify JavaScript and CSS -->
+            <plugin>
+                <groupId>com.samaxes.maven</groupId>
+                <artifactId>minify-maven-plugin</artifactId>
+                <version>1.7.6</version>
+                <executions>
+                    <execution>
+                        <id>minify-js-css</id>
+                        <configuration>
+
+                            <!-- Minify all CSS within app/ directory -->
+                            <cssSourceDir>/</cssSourceDir>
+                            <cssTargetDir>/</cssTargetDir>
+                            <cssFinalFile>glen-player.css</cssFinalFile>
+                            <cssSourceIncludes>
+                                <cssSourceInclude>app/**/*.css</cssSourceInclude>
+                            </cssSourceIncludes>
+
+                            <!-- Minify all JavaScript within app/ directory -->
+                            <jsSourceDir>/</jsSourceDir>
+                            <jsTargetDir>/</jsTargetDir>
+                            <jsFinalFile>glen-player.js</jsFinalFile>
+                            <jsSourceIncludes>
+                                <jsSourceInclude>app/**/*.js</jsSourceInclude>
+                                <jsSourceInclude>generated/**/*.js</jsSourceInclude>
+                            </jsSourceIncludes>
+
+                            <!-- Generate source maps for minified JavaScript -->
+                            <jsEngine>CLOSURE</jsEngine>
+                            <closureCreateSourceMap>true</closureCreateSourceMap>
+
+                        </configuration>
+                        <goals>
+                            <goal>minify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Copy dependencies within final structure of webapp -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.1.1</version>
+                <executions>
+
+                    <!-- Unpack webjars to be served statically -->
+                    <execution>
+                        <id>unpack-webjars</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeScope>runtime</includeScope>
+                            <includes>META-INF/resources/webjars/**</includes>
+                            <excludes>**/src/**</excludes>
+                            <includeGroupIds>org.webjars.bower</includeGroupIds>
+                            <outputDirectory>${project.build.directory}/unpacked-webjars</outputDirectory>
+                        </configuration>
+                    </execution>
+
+                    <!-- Unpack guacamole-common-js directly within lib/ -->
+                    <execution>
+                        <id>unpack-guacamole</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeScope>runtime</includeScope>
+                            <includeGroupIds>org.apache.guacamole</includeGroupIds>
+                            <includes>**/*.min.js</includes>
+                            <outputDirectory>${project.build.directory}/${project.build.finalName}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.0.1</version>
+                <executions>
+
+                    <!-- Copy webjar contents to lib/ rather than META-INF/ -->
+                    <execution>
+                        <id>copy-webjars</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/${project.build.finalName}/lib</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/unpacked-webjars/META-INF/resources/webjars</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+
+                    <!-- Copy static source of webapp to final build directory (with filtering) -->
+                    <execution>
+                        <id>copy-webapp</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/${project.build.finalName}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/src/main/webapp</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+
+            <!-- Package built result as a single .tar.gz -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.5.3</version>
+                <configuration>
+                    <appendAssemblyId>false</appendAssemblyId>
+                    <tarLongFileMode>gnu</tarLongFileMode>
+                    <descriptors>
+                        <descriptor>src/assembly/site-archive.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>package-site</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <dependencies>
+
+        <!-- Apache Guacamole - core JavaScript API -->
+        <dependency>
+            <groupId>org.apache.guacamole</groupId>
+            <artifactId>guacamole-common-js</artifactId>
+            <version>1.1.0</version>
+            <type>zip</type>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- jQuery -->
+        <dependency>
+            <groupId>org.webjars.bower</groupId>
+            <artifactId>jquery</artifactId>
+            <version>3.4.1</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- AngularJS -->
+        <dependency>
+            <groupId>org.webjars.bower</groupId>
+            <artifactId>angular</artifactId>
+            <version>1.7.8</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.webjars.bower</groupId>
+            <artifactId>angular-touch</artifactId>
+            <version>1.7.8</version>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Allow AngularJS modules to be implicitly declared -->
+        <dependency>
+            <groupId>org.webjars.bower</groupId>
+            <artifactId>angular-module-shim</artifactId>
+            <version>0.0.4</version>
+            <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.webjars.bower</groupId>
+                    <artifactId>angular</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+    </dependencies>
+
+</project>
