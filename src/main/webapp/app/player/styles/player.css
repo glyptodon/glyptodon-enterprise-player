@@ -40,10 +40,9 @@ glen-player .glen-player-controls {
     bottom: 0;
     width: 100%;
 
-    display: flex;
-
 }
 
 .glen-player-controls .glen-player-seek {
-    flex: 1;
+    display: block;
+    width: 100%;
 }
