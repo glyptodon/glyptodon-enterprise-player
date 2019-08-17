@@ -60,3 +60,34 @@
     padding: 0.25em;
     background: rgba(0, 0, 0, 0.5);
 }
+
+.glen-player-app.playing .glen-player-recording-selector,
+.glen-player-app.playing .glen-player-controls {
+    opacity: 0;
+    -webkit-transition: opacity 0.25s linear 0.25s;
+    -moz-transition: opacity 0.25s linear 0.25s;
+    -o-transition: opacity 0.25s linear 0.25s;
+    transition: opacity 0.25s linear 0.25s;
+}
+
+.glen-player-app.paused .glen-player-recording-selector,
+.glen-player-app.paused .glen-player-controls,
+.glen-player-app.playing:hover .glen-player-recording-selector,
+.glen-player-app.playing:hover .glen-player-controls {
+
+    opacity: 1;
+    -webkit-transition-delay: 0.00s;
+    -moz-transition-delay: 0.00s;
+    -o-transition-delay: 0.00s;
+    transition-delay: 0.00s;
+
+    /*
+     * NOTE: The nonsensical "0.00s" above is a workaround for YUI Compressor's
+     * incorrect minification of "0s" to "0". There appears to be a fix merged,
+     * however the Maven plugin which leverages YUI Compressor is still
+     * affected.
+     *
+     * See: https://github.com/yui/yuicompressor/issues/246
+     */
+
+}

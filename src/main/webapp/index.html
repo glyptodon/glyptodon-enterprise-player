@@ -20,7 +20,7 @@
    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
    THE SOFTWARE.
 -->
-<html ng-app="app">
+<html ng-app="app" ng-controller="appController">
 
     <head>
         <title>Glyptodon Enterprise - Session Recording Player</title>
@@ -29,7 +29,11 @@
         <link type="text/css" rel="stylesheet" href="glen-player.min.css?v=${project.version}">
     </head>
 
-    <body class="glen-player-app">
+    <body class="glen-player-app"
+          ng-class="{
+              'paused' : !playing,
+              'playing' : playing
+          }">
 
         <!-- Player for selected recording -->
         <glen-player src="selectedRecording"></glen-player>
