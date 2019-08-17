@@ -31,7 +31,13 @@
 
     <body class="glen-player-app">
 
-        <glen-player></glen-player>
+        <!-- Player for selected recording -->
+        <glen-player src="selectedRecording"></glen-player>
+
+        <!-- Recording selector (local files) -->
+        <div class="glen-player-recording-selector">
+            <glen-file-chooser file-url="selectedRecording"></glen-file-chooser>
+        </div>
 
         <!-- Apache Guacamole -->
         <script type="text/javascript" src="lib/guacamole-common-js/all.min.js?v=${project.version}"></script>

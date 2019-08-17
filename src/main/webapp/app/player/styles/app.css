@@ -20,6 +20,10 @@
  * THE SOFTWARE.
  */
 
+* {
+    box-sizing: border-box;
+}
+
 .glen-player-app {
 
     background: black;
@@ -42,4 +46,17 @@
     left: 0;
     width: 100%;
     height: 100%;
+}
+
+.glen-player-app .glen-player-recording-selector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+}
+
+.glen-player-app .glen-player-recording-selector,
+.glen-player-app .glen-player-controls {
+    padding: 0.25em;
+    background: rgba(0, 0, 0, 0.5);
 }
