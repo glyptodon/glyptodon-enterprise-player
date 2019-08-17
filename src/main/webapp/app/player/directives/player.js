@@ -22,7 +22,30 @@
 
 /**
  * Directive which plays back Glyptodon Enterprise / Apache Guacamole session
- * recordings.
+ * recordings. This directive emits the following events based on state changes
+ * within the current recording:
+ *
+ *     "glenPlayerLoading":
+ *         A new recording has been selected and is now loading.
+ *
+ *     "glenPlayerProgress"
+ *         Additional data has been loaded for the current recording and the
+ *         recording's duration has changed. The new duration in milliseconds
+ *         is passed to the event.
+ *
+ *     "glenPlayerLoaded"
+ *         The current recording has finished loading.
+ *
+ *     "glenPlayerPlay"
+ *         Playback of the current recording has started or has been resumed.
+ *
+ *     "glenPlayerPause"
+ *         Playback of the current recording has been paused.
+ *
+ *     "glenPlayerSeek"
+ *         The playback position of the current recording has changed. The new
+ *         position within the recording is passed to the event as the number
+ *         of milliseconds since the start of the recording.
  */
 angular.module('player').directive('glenPlayer', [function glenPlayer() {
 
@@ -67,9 +90,48 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
 
             // Otherwise, begin loading the provided recording
             else {
+
                 var tunnel = new Guacamole.StaticHTTPTunnel(url);
                 $scope.recording = new Guacamole.SessionRecording(tunnel);
+
+                // Notify listeners when the recording is completely loaded
+                tunnel.onstatechange = function tunnelStateChanged(state) {
+                    if (state === Guacamole.Tunnel.State.CLOSED) {
+                        $scope.$emit('glenPlayerLoaded');
+                        $scope.$evalAsync();
+                    }
+                };
+
+                // Notify listeners when additional recording data has been
+                // loaded
+                $scope.recording.onprogress = function durationChanged(duration) {
+                    $scope.$emit('glenPlayerProgress', duration);
+                    $scope.$evalAsync();
+                };
+
+                // Notify listeners when playback has started/resumed
+                $scope.recording.onplay = function playbackStarted() {
+                    $scope.$emit('glenPlayerPlay');
+                    $scope.$evalAsync();
+                };
+
+                // Notify listeners when playback has paused
+                $scope.recording.onpause = function playbackPaused() {
+                    $scope.$emit('glenPlayerPause');
+                    $scope.$evalAsync();
+                };
+
+                // Notify listeners when current position within the recording
+                // has changed
+                $scope.recording.onseek = function positionChanged(position) {
+                    $scope.$emit('glenPlayerSeek', position);
+                    $scope.$evalAsync();
+                };
+
+                // Begin loading new recording
+                $scope.$emit('glenPlayerLoading');
                 $scope.recording.connect();
+
             }
 
         });
