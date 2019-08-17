@@ -78,6 +78,33 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
         $scope.recording = null;
 
         /**
+         * The current playback position, in milliseconds. If a seek request is
+         * in progress, this will be the desired playback position of the
+         * pending request.
+         *
+         * @type {Number}
+         */
+        $scope.playbackPosition = 0;
+
+        /**
+         * Whether a seek request is currently in progress. A seek request is
+         * in progress if the user is attempting to change the current playback
+         * position (the user is manipulating the playback position slider).
+         *
+         * @type {Boolean}
+         */
+        var pendingSeekRequest = false;
+
+        /**
+         * Whether playback should be resumed (play() should be invoked on the
+         * recording) once the current seek request is complete. This value
+         * only has meaning if a seek request is pending.
+         *
+         * @type {Boolean}
+         */
+        var resumeAfterSeekRequest = false;
+
+        /**
          * Formats the given number as a decimal string, adding leading zeroes
          * such that the string contains at least two digits. The given number
          * MUST NOT be negative.
@@ -129,8 +156,51 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
 
         };
 
+        /**
+         * Pauses playback and decouples the position slider from current
+         * playback position, allowing the user to manipulate the slider
+         * without interference. Playback state will be resumed following a
+         * call to commitSeekRequest().
+         */
+        $scope.beginSeekRequest = function beginSeekRequest() {
+
+            // If a recording is present, pause and save state if we haven't
+            // already done so
+            if ($scope.recording && !pendingSeekRequest) {
+                resumeAfterSeekRequest = $scope.recording.isPlaying();
+                $scope.recording.pause();
+            }
+
+            // Flag seek request as in progress
+            pendingSeekRequest = true;
+
+        };
+
+        /**
+         * Restores the playback state at the time beginSeekRequest() was
+         * called and resumes coupling between the playback position slider and
+         * actual playback position.
+         */
+        $scope.commitSeekRequest = function commitSeekRequest() {
+
+            // If a recording is present and there is an active seek request,
+            // restore the playback state at the time that request began and
+            // begin seeking to the requested position
+            if ($scope.recording && pendingSeekRequest) {
+                resumeAfterSeekRequest && $scope.recording.play();
+                $scope.recording.seek($scope.playbackPosition);
+            }
+
+            // Flag seek request as completed
+            pendingSeekRequest = false;
+
+        };
+
         // Automatically load the requested session recording
         $scope.$watch('src', function urlChanged(url) {
+
+            // Reset position to start of recording
+            $scope.playbackPosition = 0;
 
             // Stop loading the current recording, if any
             if ($scope.recording)
@@ -176,8 +246,13 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
                 // Notify listeners when current position within the recording
                 // has changed
                 $scope.recording.onseek = function positionChanged(position) {
+
+                    if ($scope.recording.isPlaying())
+                        $scope.playbackPosition = position;
+
                     $scope.$emit('glenPlayerSeek', position);
                     $scope.$evalAsync();
+
                 };
 
                 // Begin loading new recording
