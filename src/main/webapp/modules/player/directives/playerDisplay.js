@@ -28,7 +28,7 @@ angular.module('player').directive('glenPlayerDisplay', [function glenPlayerDisp
 
     var config = {
         restrict : 'E',
-        templateUrl : 'app/player/templates/playerDisplay.html'
+        templateUrl : 'modules/player/templates/playerDisplay.html'
     };
 
     config.scope = {

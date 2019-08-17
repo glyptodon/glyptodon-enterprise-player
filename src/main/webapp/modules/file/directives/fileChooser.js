@@ -27,7 +27,7 @@ angular.module('file').directive('glenFileChooser', [function glenFileChooser() 
 
     var config = {
         restrict : 'E',
-        templateUrl : 'app/file/templates/fileChooser.html'
+        templateUrl : 'modules/file/templates/fileChooser.html'
     };
 
     config.scope = {

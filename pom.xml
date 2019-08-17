@@ -54,10 +54,10 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <sourceDir>${basedir}/src/main/webapp/app/</sourceDir>
+                    <sourceDir>${basedir}/src/main/webapp/modules/</sourceDir>
                     <include>**/*.html</include>
                     <target>${basedir}/src/main/webapp/generated/templates-main/templates.js</target>
-                    <prefix>app</prefix>
+                    <prefix>modules</prefix>
                 </configuration>
             </plugin>
 
@@ -71,20 +71,20 @@
                         <id>minify-js-css</id>
                         <configuration>
 
-                            <!-- Minify all CSS within app/ directory -->
+                            <!-- Minify all CSS within modules/ directory -->
                             <cssSourceDir>/</cssSourceDir>
                             <cssTargetDir>/</cssTargetDir>
                             <cssFinalFile>glen-player.css</cssFinalFile>
                             <cssSourceIncludes>
-                                <cssSourceInclude>app/**/*.css</cssSourceInclude>
+                                <cssSourceInclude>modules/**/*.css</cssSourceInclude>
                             </cssSourceIncludes>
 
-                            <!-- Minify all JavaScript within app/ directory -->
+                            <!-- Minify all JavaScript within modules/ directory -->
                             <jsSourceDir>/</jsSourceDir>
                             <jsTargetDir>/</jsTargetDir>
                             <jsFinalFile>glen-player.js</jsFinalFile>
                             <jsSourceIncludes>
-                                <jsSourceInclude>app/**/*.js</jsSourceInclude>
+                                <jsSourceInclude>modules/**/*.js</jsSourceInclude>
                                 <jsSourceInclude>generated/**/*.js</jsSourceInclude>
                             </jsSourceIncludes>
 

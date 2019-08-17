@@ -24,6 +24,5 @@
  * Module for the Glyptodon Enterprise session recording player.
  */
 angular.module('player', [
-    'file',
     'templates-main'
 ]);

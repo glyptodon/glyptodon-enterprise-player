@@ -51,7 +51,7 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
 
     var config = {
         restrict : 'E',
-        templateUrl : 'app/player/templates/player.html'
+        templateUrl : 'modules/player/templates/player.html'
     };
 
     config.scope = {
