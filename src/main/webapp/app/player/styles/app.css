@@ -20,7 +20,7 @@
  * THE SOFTWARE.
  */
 
-body {
+.glen-player-app {
 
     background: black;
     color: white;
@@ -34,4 +34,12 @@ body {
     padding: 0;
     margin: 0;
 
+}
+
+.glen-player-app glen-player {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }

@@ -33,14 +33,46 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
 
     config.scope = {
 
-        // TODO
+        /**
+         * The URL of the Guacamole session recording to load.
+         *
+         * @type {String}
+         */
+        src : '='
 
     };
 
     config.controller = ['$scope', '$element', '$injector',
         function glenPlayerController($scope, $element, $injector) {
 
-        // TODO
+        /**
+         * Guacamole.SessionRecording instance to be used to playback the
+         * session recording given via $scope.src. If the recording has not yet
+         * been loaded, this will be null.
+         *
+         * @type {Guacamole.SessionRecording}
+         */
+        $scope.recording = null;
+
+        // Automatically load the requested session recording
+        $scope.$watch('src', function urlChanged(url) {
+
+            // Stop loading the current recording, if any
+            if ($scope.recording)
+                $scope.recording.disconnect();
+
+            // If no recording is provided, reset to empty
+            if (!url)
+                $scope.recording = null;
+
+            // Otherwise, begin loading the provided recording
+            else {
+                var tunnel = new Guacamole.StaticHTTPTunnel(url);
+                $scope.recording = new Guacamole.SessionRecording(tunnel);
+                $scope.recording.connect();
+            }
+
+        });
 
     }];
 

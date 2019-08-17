@@ -20,9 +20,30 @@
  * THE SOFTWARE.
  */
 
-.glen-player {
+glen-player {
+    display: inline-block;
+    position: relative;
+}
 
-    /* TODO: Placeholder */
-    border: 1px solid red;
+glen-player glen-player-display {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
 
+glen-player .glen-player-controls {
+
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+
+    display: flex;
+
+}
+
+.glen-player-controls .glen-player-seek {
+    flex: 1;
 }
