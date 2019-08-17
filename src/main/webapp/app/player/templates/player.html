@@ -1,7 +1,11 @@
 <glen-player-display display="recording.getDisplay()"></glen-player-display>
 <div class="glen-player-controls">
-    <input class="glen-player-seek" type="range">
+    <input class="glen-player-seek" type="range" min="0" step="1000" ng-attr-max="recording.getDuration()">
     <button class="glen-player-play" ng-click="recording.play()" ng-hide="recording.isPlaying()">Play</button>
     <button class="glen-player-pause" ng-click="recording.pause()" ng-show="recording.isPlaying()">Pause</button>
-    <span class="glen-player-position">00:00 / 00:00</span>
+    <span class="glen-player-position">
+        {{ formatTime(recording.getPosition()) }}
+        /
+        {{ formatTime(recording.getDuration()) }}
+    </span>
 </div>

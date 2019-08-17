@@ -77,6 +77,58 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
          */
         $scope.recording = null;
 
+        /**
+         * Formats the given number as a decimal string, adding leading zeroes
+         * such that the string contains at least two digits. The given number
+         * MUST NOT be negative.
+         *
+         * @param {Number} value
+         *     The number to format.
+         *
+         * @returns {String}
+         *     The decimal string representation of the given value, padded
+         *     with leading zeroes up to a minimum length of two digits.
+         */
+        var zeroPad = function zeroPad(value) {
+            return value > 9 ? value : '0' + value;
+        };
+
+        /**
+         * Formats the given quantity of milliseconds as days, hours, minutes,
+         * and whole seconds, separated by colons (DD:HH:MM:SS). Hours are
+         * included only if the quantity is at least one hour, and days are
+         * included only if the quantity is at least one day. All included
+         * groups are zero-padded to two digits with the exception of the
+         * left-most group.
+         *
+         * @param {Number} value
+         *     The time to format, in milliseconds.
+         *
+         * @returns {String}
+         *     The given quantity of milliseconds formatted as "DD:HH:MM:SS".
+         */
+        $scope.formatTime = function formatTime(value) {
+
+            // Round provided value down to whole seconds
+            value = Math.floor((value || 0) / 1000);
+
+            // Separate seconds into logical groups of seconds, minutes,
+            // hours, etc.
+            var groups = [ 1, 24, 60, 60 ];
+            for (var i = groups.length - 1; i >= 0; i--) {
+                var placeValue = groups[i];
+                groups[i] = zeroPad(value % placeValue);
+                value = Math.floor(value / placeValue);
+            }
+
+            // Format groups separated by colons, stripping leading zeroes and
+            // groups which are entirely zeroes, leaving at least minutes and
+            // seconds
+            var formatted = groups.join(':');
+            return /^[0:]*([0-9]{1,2}(?::[0-9]{2})+)$/.exec(formatted)[1];
+
+        };
+
         // Automatically load the requested session recording
         $scope.$watch('src', function urlChanged(url) {
 
