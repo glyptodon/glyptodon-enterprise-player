@@ -199,12 +199,15 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
         // Automatically load the requested session recording
         $scope.$watch('src', function urlChanged(url) {
 
-            // Reset position to start of recording
+            // Reset position and seek state
+            pendingSeekRequest = false;
             $scope.playbackPosition = 0;
 
             // Stop loading the current recording, if any
-            if ($scope.recording)
+            if ($scope.recording) {
+                $scope.recording.pause();
                 $scope.recording.disconnect();
+            }
 
             // If no recording is provided, reset to empty
             if (!url)
