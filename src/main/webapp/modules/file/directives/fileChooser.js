@@ -27,10 +27,18 @@ angular.module('file').directive('glenFileChooser', [function glenFileChooser() 
 
     var config = {
         restrict : 'E',
-        templateUrl : 'modules/file/templates/fileChooser.html'
+        templateUrl : 'modules/file/templates/fileChooser.html',
+        transclude : true
     };
 
     config.scope = {
+
+        /**
+         * The name of the file chosen by the user.
+         *
+         * @type {String}
+         */
+        fileName : '=',
 
         /**
          * The URL of the file chosen by the user.
@@ -44,7 +52,7 @@ angular.module('file').directive('glenFileChooser', [function glenFileChooser() 
     config.controller = ['$scope', '$element', function glenFileChooserController($scope, $element) {
 
         // Update file URL when a new file is selected
-        $element.find('.glen-file-chooser').on('change', function newRecordingSelected() {
+        $element.find('input[type="file"]').on('change', function newRecordingSelected() {
 
             // Ignore attempts to select anything but exactly one file (should
             // not happen undern normal circumstances, as the input field is
@@ -56,6 +64,7 @@ angular.module('file').directive('glenFileChooser', [function glenFileChooser() 
             // Replace existing file URL with newly-generated URL
             $scope.$apply(function assignRecordingURL() {
                 URL.revokeObjectURL($scope.fileUrl);
+                $scope.fileName = fileList[0].name;
                 $scope.fileUrl = URL.createObjectURL(fileList[0]);
             });
 

@@ -31,6 +31,7 @@
 
     <body class="glen-player-app"
           ng-class="{
+              'no-recording' : !selectedRecording,
               'paused' : !playing,
               'playing' : playing
           }">
@@ -40,7 +41,14 @@
 
         <!-- Recording selector (local files) -->
         <div class="glen-player-recording-selector">
-            <glen-file-chooser file-url="selectedRecording"></glen-file-chooser>
+            <h1 class="glen-player-selected-file">{{ selectedFilename }}</h1>
+            <glen-file-chooser file-name="selectedFilename"
+                               file-url="selectedRecording">
+                <p class="glen-player-help-no-recording"
+                   ng-hide="selectedRecording">No session recording is
+                currently open. Please click here to select a recording to
+                view.</p>
+            </glen-file-chooser>
         </div>
 
         <!-- Apache Guacamole -->

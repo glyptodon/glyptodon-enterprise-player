@@ -48,6 +48,10 @@
     height: 100%;
 }
 
+.glen-player-app .glen-player-selected-file {
+    margin: 0;
+}
+
 .glen-player-app .glen-player-recording-selector {
     position: absolute;
     top: 0;
@@ -89,5 +93,41 @@
      *
      * See: https://github.com/yui/yuicompressor/issues/246
      */
+
+}
+
+.glen-player-app.no-recording .glen-player-recording-selector {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.glen-player-app.no-recording glen-file-chooser {
+
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: flex;
+
+    -webkit-box-pack: center;
+    -webkit-justify-content: center;
+    -moz-box-pack: center;
+    -ms-flex-pack: center;
+    justify-content: center;
+
+    -webkit-box-align: center;
+    -webkit-align-items: center;
+    -moz-box-align: center;
+    -ms-flex-align: center;
+    align-items: center;
+
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
 
 }
