@@ -196,6 +196,21 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
 
         };
 
+        /**
+         * Toggles the current playback state. If playback is currently paused,
+         * playback is resumed. If playback is currently active, playback is
+         * paused. If no recording has been loaded, this function has no
+         * effect.
+         */
+        $scope.togglePlayback = function togglePlayback() {
+            if ($scope.recording) {
+                if ($scope.recording.isPlaying())
+                    $scope.recording.pause();
+                else
+                    $scope.recording.play();
+            }
+        };
+
         // Automatically load the requested session recording
         $scope.$watch('src', function urlChanged(url) {
 
