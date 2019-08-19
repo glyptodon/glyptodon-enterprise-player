@@ -47,7 +47,10 @@
  *         position within the recording is passed to the event as the number
  *         of milliseconds since the start of the recording.
  */
-angular.module('player').directive('glenPlayer', [function glenPlayer() {
+angular.module('player').directive('glenPlayer', ['$injector', function glenPlayer($injector) {
+
+    // Required types
+    var SessionRecording = $injector.get('SessionRecording');
 
     var config = {
         restrict : 'E',
@@ -66,14 +69,14 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
     };
 
     config.controller = ['$scope', '$element', '$injector',
-        function glenPlayerController($scope, $element, $injector) {
+        function glenPlayerController($scope) {
 
         /**
-         * Guacamole.SessionRecording instance to be used to playback the
-         * session recording given via $scope.src. If the recording has not yet
-         * been loaded, this will be null.
+         * SessionRecording instance to be used to playback the session
+         * recording given via $scope.src. If the recording has not yet been
+         * loaded, this will be null.
          *
-         * @type {Guacamole.SessionRecording}
+         * @type {SessionRecording}
          */
         $scope.recording = null;
 
@@ -232,7 +235,7 @@ angular.module('player').directive('glenPlayer', [function glenPlayer() {
             else {
 
                 var tunnel = new Guacamole.StaticHTTPTunnel(url);
-                $scope.recording = new Guacamole.SessionRecording(tunnel);
+                $scope.recording = new SessionRecording(tunnel);
 
                 // Notify listeners when the recording is completely loaded
                 tunnel.onstatechange = function tunnelStateChanged(state) {
