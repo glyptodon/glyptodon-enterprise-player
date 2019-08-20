@@ -140,12 +140,12 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         var startRealTimestamp = null;
 
         /**
-         * The ID of the timeout which will continue the in-progress seek
-         * operation. If no seek operation is in progress, the ID stored here (if
-         * any) will not be valid.
+         * An object containing a single "aborted" property which is set to
+         * true if the in-progress seek operation should be aborted. If no seek
+         * operation is in progress, this will be null.
          *
          * @private
-         * @type {Number}
+         * @type {Object}
          */
         var activeSeek = null;
 
@@ -481,6 +481,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
             // Abort any in-progress seek
             abortSeek();
 
+            // Note that a new seek operation is in progress
             var thisSeek = activeSeek = {
                 aborted : false
             };
