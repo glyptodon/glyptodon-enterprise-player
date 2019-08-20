@@ -344,7 +344,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
 
                 // Notify that additional content is available
                 if (recording.onprogress)
-                    recording.onprogress(recording.getDuration());
+                    recording.onprogress(recording.getDuration(), frameEnd);
 
             }
 
@@ -623,6 +623,9 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          * @event
          * @param {Number} duration
          *     The new duration of the recording, in milliseconds.
+         *
+         * @param {Number} parsedSize
+         *     The number of bytes that have been loaded/parsed.
          */
         this.onprogress = null;
 
