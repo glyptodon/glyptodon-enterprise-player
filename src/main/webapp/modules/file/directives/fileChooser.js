@@ -34,18 +34,11 @@ angular.module('file').directive('glenFileChooser', [function glenFileChooser() 
     config.scope = {
 
         /**
-         * The name of the file chosen by the user.
+         * The File object representing the file chosen by the user.
          *
-         * @type {String}
+         * @type {File}
          */
-        fileName : '=',
-
-        /**
-         * The URL of the file chosen by the user.
-         *
-         * @type {String}
-         */
-        fileUrl : '='
+        file : '='
 
     };
 
@@ -61,11 +54,9 @@ angular.module('file').directive('glenFileChooser', [function glenFileChooser() 
             if (fileList.length !== 1)
                 return;
 
-            // Replace existing file URL with newly-generated URL
-            $scope.$apply(function assignRecordingURL() {
-                URL.revokeObjectURL($scope.fileUrl);
-                $scope.fileName = fileList[0].name;
-                $scope.fileUrl = URL.createObjectURL(fileList[0]);
+            // Replace existing file with selected file
+            $scope.$apply(function assignFile() {
+                $scope.file = fileList[0];
             });
 
         });

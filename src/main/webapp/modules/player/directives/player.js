@@ -60,11 +60,11 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
     config.scope = {
 
         /**
-         * The URL of the Guacamole session recording to load.
+         * A Blob containing the Guacamole session recording to load.
          *
-         * @type {String}
+         * @type {Blob}
          */
-        src : '='
+        blob : '='
 
     };
 
@@ -215,7 +215,7 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
         };
 
         // Automatically load the requested session recording
-        $scope.$watch('src', function urlChanged(url) {
+        $scope.$watch('blob', function blobChanged(blob) {
 
             // Reset position and seek state
             pendingSeekRequest = false;
@@ -224,25 +224,22 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
             // Stop loading the current recording, if any
             if ($scope.recording) {
                 $scope.recording.pause();
-                $scope.recording.disconnect();
+                $scope.recording.abort();
             }
 
             // If no recording is provided, reset to empty
-            if (!url)
+            if (!blob)
                 $scope.recording = null;
 
             // Otherwise, begin loading the provided recording
             else {
 
-                var tunnel = new Guacamole.StaticHTTPTunnel(url);
-                $scope.recording = new SessionRecording(tunnel);
+                $scope.recording = new SessionRecording(blob);
 
                 // Notify listeners when the recording is completely loaded
-                tunnel.onstatechange = function tunnelStateChanged(state) {
-                    if (state === Guacamole.Tunnel.State.CLOSED) {
-                        $scope.$emit('glenPlayerLoaded');
-                        $scope.$evalAsync();
-                    }
+                $scope.recording.onload = function recordingLoaded() {
+                    $scope.$emit('glenPlayerLoaded');
+                    $scope.$evalAsync();
                 };
 
                 // Notify listeners when additional recording data has been
@@ -278,7 +275,6 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
 
                 // Begin loading new recording
                 $scope.$emit('glenPlayerLoading');
-                $scope.recording.connect();
 
             }
 

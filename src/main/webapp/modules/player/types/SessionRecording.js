@@ -23,18 +23,19 @@
 angular.module('player').factory('SessionRecording', [function defineSessionRecording() {
 
     /**
-     * A recording of a Guacamole session. Given a {@link Guacamole.Tunnel},
-     * the SessionRecording automatically handles incoming Guacamole
-     * instructions, storing them for playback. Playback of the recording may
-     * be controlled through function calls to the SessionRecording, even while
-     * the recording has not yet finished being created or downloaded.
+     * A recording of a Guacamole session. Given a Blob, the SessionRecording
+     * automatically parses Guacamole instructions within the Blob as it plays
+     * back the recording. Playback of the recording may be controlled through
+     * function calls to the SessionRecording. Parsing of the contents of the
+     * Blob will begin immediately and automatically after this constructor is
+     * invoked.
      *
      * @constructor
-     * @param {Guacamole.Tunnel} tunnel
-     *     The Guacamole.Tunnel from which the instructions of the recording should
+     * @param {Blob} blob
+     *     The Blob from which the instructions of the recording should
      *     be read.
      */
-    var SessionRecording = function SessionRecording(tunnel) {
+    var SessionRecording = function SessionRecording(blob) {
 
         /**
          * Reference to this SessionRecording.
@@ -43,6 +44,19 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          * @type {SessionRecording}
          */
         var recording = this;
+
+        /**
+         * The number of bytes that this SessionRecording should attempt to
+         * read from the given blob in each read operation. Larger blocks will
+         * generally read the blob more quickly, but may result in excessive
+         * time being spent within the parser, making the page unresponsive
+         * while the recording is loading.
+         *
+         * @private
+         * @constant
+         * @type {Number}
+         */
+        var BLOCK_SIZE = 262144;
 
         /**
          * The minimum number of characters which must have been read between
@@ -64,41 +78,12 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         var KEYFRAME_TIME_INTERVAL = 5000;
 
         /**
-         * The maximum amount of time to spend in any particular seek operation
-         * before returning control to the main thread, in milliseconds. Seek
-         * operations exceeding this amount of time will proceed asynchronously.
-         *
-         * @private
-         * @constant
-         * @type {Number}
-         */
-        var MAXIMUM_SEEK_TIME = 5;
-
-        /**
-         * All frames parsed from the provided tunnel.
+         * All frames parsed from the provided blob.
          *
          * @private
          * @type {SessionRecording._Frame[]}
          */
         var frames = [];
-
-        /**
-         * All instructions which have been read since the last frame was added to
-         * the frames array.
-         *
-         * @private
-         * @type {SessionRecording._Frame.Instruction[]}
-         */
-        var instructions = [];
-
-        /**
-         * The approximate number of characters which have been read from the
-         * provided tunnel since the last frame was flagged for use as a keyframe.
-         *
-         * @private
-         * @type {Number}
-         */
-        var charactersSinceLastKeyframe = 0;
 
         /**
          * The timestamp of the last frame which was flagged for use as a keyframe.
@@ -107,7 +92,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          * @private
          * @type {Number}
          */
-        var lastKeyframeTimestamp = 0;
+        var lastKeyframe = 0;
 
         /**
          * Tunnel which feeds arbitrary instructions to the client used by this
@@ -162,7 +147,165 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          * @private
          * @type {Number}
          */
-        var seekTimeout = null;
+        var activeSeek = null;
+
+        /**
+         * The byte offset within the recording blob of the first character of
+         * the first instruction of the current frame. Here, "current frame"
+         * refers to the frame currently being parsed when the provided
+         * recording is initially loading. If the recording is not being
+         * loaded, this value has no meaning.
+         *
+         * @private
+         * @type {Number}
+         */
+        var frameStart = 0;
+
+        /**
+         * The byte offset within the recording blob of the character which
+         * follows the last character of the most recently parsed instruction
+         * of the current frame. Here, "current frame" refers to the frame
+         * currently being parsed when the provided recording is initially
+         * loading. If the recording is not being loaded, this value has no
+         * meaning.
+         *
+         * @private
+         * @type {Number}
+         */
+        var frameEnd = 0;
+
+        /**
+         * Whether the initial loading process has been aborted. If the loading
+         * process has been aborted, no further blocks of data should be read
+         * from the recording.
+         *
+         * @private
+         * @type {Boolean}
+         */
+        var aborted = false;
+
+        /**
+         * Parses all Guacamole instructions within the given blob, invoking
+         * the provided instruction callback for each such instruction. Once
+         * the end of the blob has been reached (no instructions remain to be
+         * parsed), the provided completion callback is invoked. If a parse
+         * error prevents reading instructions from the blob, the onerror
+         * callback of the SessionRecording is invoked, and no further data is
+         * handled within the blob.
+         *
+         * @private
+         * @param {Blob} blob
+         *     The blob to parse Guacamole instructions from.
+         *
+         * @param {Function} [instructionCallback]
+         *     The callback to invoke for each Guacamole instruction read from
+         *     the given blob. This function must accept the same arguments
+         *     as the oninstruction handler of Guacamole.Parser.
+         *
+         * @param {Function} [completionCallback]
+         *     The callback to invoke once all instructions have been read from
+         *     the given blob.
+         */
+        var parseBlob = function parseBlob(blob, instructionCallback, completionCallback) {
+
+            // Do not read any further blocks if loading has been aborted
+            if (aborted)
+                return;
+
+            // Prepare a parser to handle all instruction data within the blob,
+            // automatically invoking the provided instruction callback for all
+            // parsed instructions
+            var parser = new Guacamole.Parser();
+            parser.oninstruction = instructionCallback;
+
+            var offset = 0;
+            var reader = new FileReader();
+
+            /**
+             * Reads the block of data at offset bytes within the blob. If no
+             * such block exists, then the completion callback provided to
+             * parseBlob() is invoked as all data has been read.
+             *
+             * @private
+             */
+            var readNextBlock = function readNextBlock() {
+
+                // Do not read any further blocks if loading has been aborted
+                if (aborted)
+                    return;
+
+                // Parse all instructions within the block, invoking the
+                // onerror handler if a parse error occurs
+                if (reader.readyState === 2 /* DONE */) {
+                    try {
+                        parser.receive(reader.result);
+                    }
+                    catch (parseError) {
+                        if (recording.onerror) {
+                            recording.onerror(parseError.message);
+                        }
+                        return;
+                    }
+                }
+
+                // Select the next block of data to be read, if any
+                var block = blob.slice(offset, offset + BLOCK_SIZE)
+
+                // If no data remains, the read operation is complete and no
+                // further blocks need to be read
+                if (!block.size) {
+                    if (completionCallback)
+                        completionCallback();
+                }
+
+                // Otherwise, read the next block
+                else {
+                    offset += block.size;
+                    reader.readAsText(block);
+                }
+
+            };
+
+            // Read blocks until the end of the given blob is reached
+            reader.onload = readNextBlock;
+            readNextBlock();
+
+        };
+
+        /**
+         * Calculates the size of the given Guacamole instruction element, in
+         * Unicode characters. The size returned includes the characters which
+         * make up the length, the "." separator between the length and the
+         * element itself, and the "," or ";" terminator which follows the
+         * element.
+         *
+         * @private
+         * @param {String} value
+         *     The value of the element which has already been parsed (lacks
+         *     the initial length, "." separator, and "," or ";" terminator).
+         *
+         * @returns {Number}
+         *     The number of Unicode characters which would make up the given
+         *     element within a Guacamole instruction.
+         */
+        var getElementSize = function getElementSize(value) {
+
+            var valueLength = value.length;
+
+            // Calculate base size, assuming at least one digit, the "."
+            // separator, and the "," or ";" terminator
+            var protocolSize = valueLength + 3;
+
+            // Add one character for each additional digit that would occur
+            // in the element length prefix
+            while (valueLength >= 10) {
+                protocolSize++;
+                valueLength = Math.floor(valueLength / 10);
+            }
+
+            return protocolSize;
+
+        };
 
         // Start playback client connected
         playbackClient.connect();
@@ -170,13 +313,13 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         // Hide cursor unless mouse position is received
         playbackClient.getDisplay().showCursor(false);
 
-        // Read instructions from provided tunnel, extracting each frame
-        tunnel.oninstruction = function handleInstruction(opcode, args) {
+        // Read instructions from provided blob, extracting each frame
+        parseBlob(blob, function handleInstruction(opcode, args) {
 
-            // Store opcode and arguments for received instruction
-            var instruction = new SessionRecording._Frame.Instruction(opcode, args.slice());
-            instructions.push(instruction);
-            charactersSinceLastKeyframe += instruction.getSize();
+            // Advance end of frame by overall length of parsed instruction
+            frameEnd += getElementSize(opcode);
+            for (var i = 0; i < args.length; i++)
+                frameEnd += getElementSize(args[i]);
 
             // Once a sync is received, store all instructions since the last
             // frame as a new frame
@@ -186,21 +329,18 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
                 var timestamp = parseInt(args[0]);
 
                 // Add a new frame containing the instructions read since last frame
-                var frame = new SessionRecording._Frame(timestamp, instructions);
+                var frame = new SessionRecording._Frame(timestamp, frameStart, frameEnd);
                 frames.push(frame);
+                frameStart = frameEnd;
 
                 // This frame should eventually become a keyframe if enough data
                 // has been processed and enough recording time has elapsed, or if
                 // this is the absolute first frame
-                if (frames.length === 1 || (charactersSinceLastKeyframe >= KEYFRAME_CHAR_INTERVAL
-                        && timestamp - lastKeyframeTimestamp >= KEYFRAME_TIME_INTERVAL)) {
+                if (frames.length === 1 || (frameEnd - frames[lastKeyframe].start >= KEYFRAME_CHAR_INTERVAL
+                        && timestamp - frames[lastKeyframe].timestamp >= KEYFRAME_TIME_INTERVAL)) {
                     frame.keyframe = true;
-                    lastKeyframeTimestamp = timestamp;
-                    charactersSinceLastKeyframe = 0;
+                    lastKeyframe = frames.length - 1;
                 }
-
-                // Clear set of instructions in preparation for next frame
-                instructions = [];
 
                 // Notify that additional content is available
                 if (recording.onprogress)
@@ -208,7 +348,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
 
             }
 
-        };
+        }, recording.onload);
 
         /**
          * Converts the given absolute timestamp to a timestamp which is relative
@@ -287,22 +427,26 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          *     The index of the frame within the frames array which should be
          *     replayed.
          */
-        var replayFrame = function replayFrame(index) {
+        var replayFrame = function replayFrame(index, callback) {
 
             var frame = frames[index];
 
             // Replay all instructions within the retrieved frame
-            for (var i = 0; i < frame.instructions.length; i++) {
-                var instruction = frame.instructions[i];
-                playbackTunnel.receiveInstruction(instruction.opcode, instruction.args);
-            }
+            parseBlob(blob.slice(frame.start, frame.end), function handleInstruction(opcode, args) {
+                playbackTunnel.receiveInstruction(opcode, args);
+            }, function replayCompleted() {
 
-            // Store client state if frame is flagged as a keyframe
-            if (frame.keyframe && !frame.clientState) {
-                playbackClient.exportState(function storeClientState(state) {
-                    frame.clientState = state;
-                });
-            }
+                // Store client state if frame is flagged as a keyframe
+                if (frame.keyframe && !frame.clientState) {
+                    playbackClient.exportState(function storeClientState(state) {
+                        frame.clientState = state;
+                    });
+                }
+
+                if (callback)
+                    callback();
+
+            });
 
         };
 
@@ -330,44 +474,45 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
             // Abort any in-progress seek
             abortSeek();
 
-            // Replay frames asynchronously
-            seekTimeout = window.setTimeout(function continueSeek() {
+            var thisSeek = activeSeek = {
+                aborted : false
+            };
 
-                var startIndex;
+            var startIndex;
 
-                // Back up until startIndex represents current state
-                for (startIndex = index; startIndex >= 0; startIndex--) {
+            // Back up until startIndex represents current state
+            for (startIndex = index; startIndex >= 0; startIndex--) {
 
-                    var frame = frames[startIndex];
+                var frame = frames[startIndex];
 
-                    // If we've reached the current frame, startIndex represents
-                    // current state by definition
-                    if (startIndex === currentFrame)
-                        break;
+                // If we've reached the current frame, startIndex represents
+                // current state by definition
+                if (startIndex === currentFrame)
+                    break;
 
-                    // If frame has associated absolute state, make that frame the
-                    // current state
-                    if (frame.clientState) {
-                        playbackClient.importState(frame.clientState);
-                        break;
-                    }
-
+                // If frame has associated absolute state, make that frame the
+                // current state
+                if (frame.clientState) {
+                    playbackClient.importState(frame.clientState);
+                    break;
                 }
 
-                // Advance to frame index after current state
-                startIndex++;
+            }
 
-                var startTime = new Date().getTime();
+            // Advance to frame index after current state
+            startIndex++;
 
-                // Replay any applicable incremental frames
-                for (; startIndex <= index; startIndex++) {
+            var startTime = new Date().getTime();
 
-                    // Stop seeking if the operation is taking too long
-                    var currentTime = new Date().getTime();
-                    if (currentTime - startTime >= MAXIMUM_SEEK_TIME)
-                        break;
+            // Replay any applicable incremental frames
+            var continueReplay = function continueReplay() {
 
-                    replayFrame(startIndex);
+                if (thisSeek.aborted)
+                    return;
+
+                if (startIndex <= index) {
+                    replayFrame(startIndex++, continueReplay);
+                    return;
                 }
 
                 // Current frame is now at requested index
@@ -386,7 +531,13 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
                 else
                     callback();
 
-            }, delay || 0);
+            };
+
+            if (!delay)
+                continueReplay();
+
+            else
+                window.setTimeout(continueReplay, delay);
 
         };
 
@@ -397,7 +548,10 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          * @private
          */
         var abortSeek = function abortSeek() {
-            window.clearTimeout(seekTimeout);
+            if (activeSeek) {
+                activeSeek.aborted = true;
+                activeSeek = null;
+            }
         };
 
         /**
@@ -437,6 +591,32 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         };
 
         /**
+         * Fired when loading of this recording has completed and all frames
+         * are available.
+         *
+         * @event
+         */
+        this.onload = null;
+
+        /**
+         * Fired when an error occurs which prevents the recording from being
+         * played back.
+         *
+         * @event
+         * @param {String} message
+         *     A human-readable message describing the error that occurred.
+         */
+        this.onerror = null;
+
+        /**
+         * Fired when further loading of this recording has been explicitly
+         * aborted through a call to abort().
+         *
+         * @event
+         */
+        this.onabort = null;
+
+        /**
          * Fired when new frames have become available while the recording is
          * being downloaded.
          *
@@ -473,23 +653,15 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         this.onseek = null;
 
         /**
-         * Connects the underlying tunnel, beginning download of the Guacamole
-         * session. Playback of the Guacamole session cannot occur until at least
-         * one frame worth of instructions has been downloaded.
-         *
-         * @param {String} data
-         *     The data to send to the tunnel when connecting.
+         * Aborts the loading process, stopping further processing of the
+         * provided blob.
          */
-        this.connect = function connect(data) {
-            tunnel.connect(data);
-        };
-
-        /**
-         * Disconnects the underlying tunnel, stopping further download of the
-         * Guacamole session.
-         */
-        this.disconnect = function disconnect() {
-            tunnel.disconnect();
+        this.abort = function abort() {
+            if (!aborted) {
+                aborted = true;
+                if (recording.onabort)
+                    recording.onabort();
+            }
         };
 
         /**
@@ -667,11 +839,15 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
      *     The timestamp of this frame, as dictated by the "sync" instruction which
      *     terminates the frame.
      *
-     * @param {SessionRecording._Frame.Instruction[]} instructions
-     *     All instructions which are necessary to generate this frame relative to
-     *     the previous frame in the Guacamole session.
+     * @param {Number} start
+     *     The byte offset within the blob of the first character of the first
+     *     instruction of this frame.
+     *
+     * @param {Number} end
+     *     The byte offset within the blob of character which follows the last
+     *     character of the last instruction of this frame.
      */
-    SessionRecording._Frame = function _Frame(timestamp, instructions) {
+    SessionRecording._Frame = function _Frame(timestamp, start, end) {
 
         /**
          * Whether this frame should be used as a keyframe if possible. This value
@@ -693,12 +869,20 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         this.timestamp = timestamp;
 
         /**
-         * All instructions which are necessary to generate this frame relative to
-         * the previous frame in the Guacamole session.
+         * The byte offset within the blob of the first character of the first
+         * instruction of this frame.
          *
-         * @type {SessionRecording._Frame.Instruction[]}
+         * @type {Number}
          */
-        this.instructions = instructions;
+        this.start = start;
+
+        /**
+         * The byte offset within the blob of character which follows the last
+         * character of the last instruction of this frame.
+         *
+         * @type {Number}
+         */
+        this.end = end;
 
         /**
          * A snapshot of client state after this frame was rendered, as returned by
@@ -709,66 +893,6 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          * @default null
          */
         this.clientState = null;
-
-    };
-
-    /**
-     * A Guacamole protocol instruction. Each Guacamole protocol instruction is
-     * made up of an opcode and set of arguments.
-     *
-     * @private
-     * @constructor
-     * @param {String} opcode
-     *     The opcode of this Guacamole instruction.
-     *
-     * @param {String[]} args
-     *     All arguments associated with this Guacamole instruction.
-     */
-    SessionRecording._Frame.Instruction = function Instruction(opcode, args) {
-
-        /**
-         * Reference to this SessionRecording._Frame.Instruction.
-         *
-         * @private
-         * @type {SessionRecording._Frame.Instruction}
-         */
-        var instruction = this;
-
-        /**
-         * The opcode of this Guacamole instruction.
-         *
-         * @type {String}
-         */
-        this.opcode = opcode;
-
-        /**
-         * All arguments associated with this Guacamole instruction.
-         *
-         * @type {String[]}
-         */
-        this.args = args;
-
-        /**
-         * Returns the approximate number of characters which make up this
-         * instruction. This value is only approximate as it excludes the length
-         * prefixes and various delimiters used by the Guacamole protocol; only
-         * the content of the opcode and each argument is taken into account.
-         *
-         * @returns {Number}
-         *     The approximate size of this instruction, in characters.
-         */
-        this.getSize = function getSize() {
-
-            // Init with length of opcode
-            var size = instruction.opcode.length;
-
-            // Add length of all arguments
-            for (var i = 0; i < instruction.args.length; i++)
-                size += instruction.args[i].length;
-
-            return size;
-
-        };
 
     };
 

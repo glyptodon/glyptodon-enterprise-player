@@ -40,13 +40,12 @@
           }">
 
         <!-- Player for selected recording -->
-        <glen-player src="selectedRecording"></glen-player>
+        <glen-player blob="selectedRecording"></glen-player>
 
         <!-- Recording selector (local files) -->
         <div class="glen-player-recording-selector">
-            <h1 class="glen-player-selected-file">{{ selectedFilename }}</h1>
-            <glen-file-chooser file-name="selectedFilename"
-                               file-url="selectedRecording">
+            <h1 class="glen-player-selected-file">{{ selectedRecording.name }}</h1>
+            <glen-file-chooser file="selectedRecording">
                 <p class="glen-player-help-no-recording"
                    ng-hide="selectedRecording">No session recording is
                 currently open. Please click here to select a recording to
