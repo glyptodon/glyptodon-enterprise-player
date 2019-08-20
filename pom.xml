@@ -118,7 +118,7 @@
                             <includeScope>runtime</includeScope>
                             <includes>META-INF/resources/webjars/**</includes>
                             <excludes>**/src/**</excludes>
-                            <includeGroupIds>org.webjars.bower</includeGroupIds>
+                            <includeGroupIds>org.webjars,org.webjars.bower</includeGroupIds>
                             <outputDirectory>${project.build.directory}/unpacked-webjars</outputDirectory>
                         </configuration>
                     </execution>
@@ -254,6 +254,13 @@
                     <artifactId>angular</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- Font Awesome - icon library -->
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>font-awesome</artifactId>
+            <version>5.10.1</version>
         </dependency>
 
     </dependencies>

@@ -182,3 +182,8 @@
     height: 100%;
 
 }
+
+.glen-player-recording-selector h1 .fas {
+    margin-right: 8px;
+    margin-left: 2px;
+}

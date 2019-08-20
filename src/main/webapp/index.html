@@ -30,6 +30,8 @@
         <meta http-equiv="x-ua-compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link type="text/css" rel="stylesheet" href="glen-player.min.css?v=${project.version}">
+        <link type="text/css" rel="stylesheet" href="lib/font-awesome/5.10.1/css/fontawesome.css">
+        <link type="text/css" rel="stylesheet" href="lib/font-awesome/5.10.1/css/solid.css">
     </head>
 
     <body class="glen-player-app"
@@ -44,7 +46,8 @@
 
         <!-- Recording selector (local files) -->
         <div class="glen-player-recording-selector">
-            <h1 class="glen-player-selected-file">{{ selectedRecording.name }}</h1>
+            <h1 ng-show="selectedRecording"
+                class="glen-player-selected-file"><i class="fas fa-film"></i>{{ selectedRecording.name }}</h1>
             <glen-file-chooser file="selectedRecording">
                 <p class="glen-player-help-no-recording"
                    ng-hide="selectedRecording">No session recording is

@@ -12,9 +12,15 @@
            ng-model="playbackPosition"
            ng-on-change="commitSeekRequest()">
 
-    <!-- Play / Pause buttons -->
-    <button class="glen-player-play" ng-click="recording.play()" ng-hide="recording.isPlaying()">Play</button>
-    <button class="glen-player-pause" ng-click="recording.pause()" ng-show="recording.isPlaying()">Pause</button>
+    <!-- Play button -->
+    <button class="glen-player-play"
+            ng-click="recording.play()"
+            ng-hide="recording.isPlaying()"><i class="fas fa-play"></i></button>
+
+    <!-- Pause button -->
+    <button class="glen-player-pause"
+            ng-click="recording.pause()"
+            ng-show="recording.isPlaying()"><i class="fas fa-pause"></i></button>
 
     <!-- Playback position and duration -->
     <span class="glen-player-position">

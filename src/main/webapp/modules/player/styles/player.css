@@ -47,6 +47,20 @@ glen-player .glen-player-controls {
     width: 100%;
 }
 
+.glen-player-controls .glen-player-play,
+.glen-player-controls .glen-player-pause {
+    color: white;
+    background: transparent;
+    border: none;
+    width: 2em;
+    height: 2em;
+}
+
+.glen-player-controls .glen-player-play:hover,
+.glen-player-controls .glen-player-pause:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
 glen-player .glen-player-status {
 
     position: fixed;
