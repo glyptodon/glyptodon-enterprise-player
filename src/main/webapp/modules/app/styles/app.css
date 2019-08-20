@@ -49,7 +49,17 @@
 }
 
 .glen-player-app .glen-player-selected-file {
-    margin: 0;
+
+    font-size: 1.5em;
+    font-weight: normal;
+
+    margin: 0.25em;
+
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
 }
 
 .glen-player-app .glen-player-recording-selector {
@@ -59,9 +69,12 @@
     width: 100%;
 }
 
-.glen-player-app .glen-player-recording-selector,
 .glen-player-app .glen-player-controls {
     padding: 0.25em;
+}
+
+.glen-player-app .glen-player-recording-selector,
+.glen-player-app .glen-player-controls {
     background: rgba(0, 0, 0, 0.5);
 }
 
