@@ -31,7 +31,7 @@
  *     "glenPlayerProgress"
  *         Additional data has been loaded for the current recording and the
  *         recording's duration has changed. The new duration in milliseconds
- *         is passed to the event.
+ *         and the number of bytes loaded so far are passed to the event.
  *
  *     "glenPlayerLoaded"
  *         The current recording has finished loading.
@@ -88,6 +88,10 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
          * @type {Number}
          */
         $scope.playbackPosition = 0;
+
+        $scope.operationText = null;
+
+        $scope.operationProgress = 0;
 
         /**
          * Whether a seek request is currently in progress. A seek request is
@@ -238,14 +242,16 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
 
                 // Notify listeners when the recording is completely loaded
                 $scope.recording.onload = function recordingLoaded() {
+                    $scope.operationText = null;
                     $scope.$emit('glenPlayerLoaded');
                     $scope.$evalAsync();
                 };
 
                 // Notify listeners when additional recording data has been
                 // loaded
-                $scope.recording.onprogress = function durationChanged(duration) {
-                    $scope.$emit('glenPlayerProgress', duration);
+                $scope.recording.onprogress = function recordingLoadProgressed(duration, current) {
+                    $scope.operationProgress = current / blob.size;
+                    $scope.$emit('glenPlayerProgress', duration, current);
                     $scope.$evalAsync();
                 };
 
@@ -274,6 +280,8 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
                 };
 
                 // Begin loading new recording
+                $scope.operationText = 'Your recording is now being loaded. Please wait...';
+                $scope.operationProgress = 0;
                 $scope.$emit('glenPlayerLoading');
 
             }

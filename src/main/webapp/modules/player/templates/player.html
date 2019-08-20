@@ -1,5 +1,8 @@
+<!-- Actual playback display -->
 <glen-player-display display="recording.getDisplay()"
                      ng-click="togglePlayback()"></glen-player-display>
+
+<!-- Player controls -->
 <div class="glen-player-controls" ng-show="recording">
 
     <!-- Playback position slider -->
@@ -21,3 +24,10 @@
     </span>
 
 </div>
+
+<!-- Modal status indicator -->
+<div class="glen-player-status" ng-show="operationText">
+    <glen-player-progress-indicator progress="operationProgress"></glen-player-progress-indicator>
+    <p>{{ operationText }}</p>
+</div>
+
