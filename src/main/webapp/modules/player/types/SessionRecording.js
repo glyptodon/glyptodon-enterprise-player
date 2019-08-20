@@ -249,7 +249,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
                 }
 
                 // Select the next block of data to be read, if any
-                var block = blob.slice(offset, offset + BLOCK_SIZE)
+                var block = blob.slice(offset, offset + BLOCK_SIZE);
 
                 // If no data remains, the read operation is complete and no
                 // further blocks need to be read
@@ -426,6 +426,9 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          * @param {Number} index
          *     The index of the frame within the frames array which should be
          *     replayed.
+         *
+         * @param {Function} callback
+         *     The callback to invoke once replay of the frame has completed.
          */
         var replayFrame = function replayFrame(index, callback) {
 
