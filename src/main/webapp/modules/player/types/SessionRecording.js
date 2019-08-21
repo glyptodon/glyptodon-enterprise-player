@@ -512,11 +512,9 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
             // Replay any applicable incremental frames
             var continueReplay = function continueReplay() {
 
-                // Finish seek early if aborted
-                if (thisSeek.aborted) {
-                    callback();
+                // Cancel seek if aborted
+                if (thisSeek.aborted)
                     return;
-                }
 
                 // Notify of changes in position
                 if (recording.onseek && currentIndex > startIndex) {
