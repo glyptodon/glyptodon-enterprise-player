@@ -99,6 +99,7 @@
     display: inline-block;
 
     border: 2px solid white;
+    border-radius: 0;
     background: black;
     color: white;
     font-weight: bold;
