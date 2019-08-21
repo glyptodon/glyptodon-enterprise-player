@@ -31,11 +31,11 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
      * invoked.
      *
      * @constructor
-     * @param {Blob} blob
+     * @param {Blob} recordingBlob
      *     The Blob from which the instructions of the recording should
      *     be read.
      */
-    var SessionRecording = function SessionRecording(blob) {
+    var SessionRecording = function SessionRecording(recordingBlob) {
 
         /**
          * Reference to this SessionRecording.
@@ -185,6 +185,16 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         var aborted = false;
 
         /**
+         * The function to invoke when the seek operation initiated by a call
+         * to seek() is cancelled or successfully completed. If no seek
+         * operation is in progress, this will be null.
+         *
+         * @private
+         * @type {Function}
+         */
+        var seekCallback = null;
+
+        /**
          * Parses all Guacamole instructions within the given blob, invoking
          * the provided instruction callback for each such instruction. Once
          * the end of the blob has been reached (no instructions remain to be
@@ -209,7 +219,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         var parseBlob = function parseBlob(blob, instructionCallback, completionCallback) {
 
             // Do not read any further blocks if loading has been aborted
-            if (aborted)
+            if (aborted && blob === recordingBlob)
                 return;
 
             // Prepare a parser to handle all instruction data within the blob,
@@ -231,7 +241,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
             var readNextBlock = function readNextBlock() {
 
                 // Do not read any further blocks if loading has been aborted
-                if (aborted)
+                if (aborted && blob === recordingBlob)
                     return;
 
                 // Parse all instructions within the block, invoking the
@@ -312,7 +322,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
         playbackClient.getDisplay().showCursor(false);
 
         // Read instructions from provided blob, extracting each frame
-        parseBlob(blob, function handleInstruction(opcode, args) {
+        parseBlob(recordingBlob, function handleInstruction(opcode, args) {
 
             // Advance end of frame by overall length of parsed instruction
             frameEnd += getElementSize(opcode);
@@ -439,7 +449,7 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
             var frame = frames[index];
 
             // Replay all instructions within the retrieved frame
-            parseBlob(blob.slice(frame.start, frame.end), function handleInstruction(opcode, args) {
+            parseBlob(recordingBlob.slice(frame.start, frame.end), function handleInstruction(opcode, args) {
                 playbackTunnel.receiveInstruction(opcode, args);
             }, function replayCompleted() {
 
@@ -449,6 +459,9 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
                         frame.clientState = state;
                     });
                 }
+
+                // Update state to correctly represent the current frame
+                currentFrame = index;
 
                 if (callback)
                     callback();
@@ -502,35 +515,32 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
                 // current state
                 if (frame.clientState) {
                     playbackClient.importState(frame.clientState);
+                    currentFrame = index;
                     break;
                 }
 
             }
 
-            var currentIndex = startIndex;
-
             // Replay any applicable incremental frames
             var continueReplay = function continueReplay() {
+
+                // Notify of changes in position
+                if (recording.onseek && currentFrame > startIndex) {
+                    recording.onseek(toRelativeTimestamp(frames[currentFrame].timestamp),
+                        currentFrame - startIndex, index - startIndex);
+                }
 
                 // Cancel seek if aborted
                 if (thisSeek.aborted)
                     return;
 
-                // Notify of changes in position
-                if (recording.onseek && currentIndex > startIndex) {
-                    recording.onseek(recording.getPosition(),
-                        currentIndex - startIndex, index - startIndex);
-                }
-
                 // If frames remain, replay the next frame
-                if (currentIndex < index)
-                    replayFrame(++currentIndex, continueReplay);
+                if (!thisSeek.aborted && currentFrame < index)
+                    replayFrame(currentFrame + 1, continueReplay);
 
                 // Otherwise, the seek operation is completed
-                else {
-                    currentFrame = currentIndex;
+                else
                     callback();
-                }
 
             };
 
@@ -793,23 +803,48 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
             if (frames.length === 0)
                 return;
 
+            // Abort active seek operation, if any
+            recording.cancel();
+
             // Pause playback, preserving playback state
             var originallyPlaying = recording.isPlaying();
             recording.pause();
 
-            // Perform seek
-            seekToFrame(findFrame(0, frames.length - 1, position), function restorePlaybackState() {
+            // Restore playback when seek is completed or cancelled
+            seekCallback = function restorePlaybackState() {
+
+                // Seek is no longer in progress
+                seekCallback = null;
 
                 // Restore playback state
-                if (originallyPlaying)
+                if (originallyPlaying) {
                     recording.play();
+                    originallyPlaying = null;
+                }
 
                 // Notify that seek has completed
                 if (callback)
                     callback();
 
-            });
+            };
 
+            // Perform seek
+            seekToFrame(findFrame(0, frames.length - 1, position), seekCallback);
+
+        };
+
+        /**
+         * Cancels the current seek operation, setting the current frame of the
+         * recording to wherever the seek operation was able to reach prior to
+         * being cancelled. If a callback was provided to seek(), that callback
+         * is invoked. If a seek operation is not currently underway, this
+         * function has no effect.
+         */
+        this.cancel = function cancel() {
+            if (seekCallback) {
+                abortSeek();
+                seekCallback();
+            }
         };
 
         /**
