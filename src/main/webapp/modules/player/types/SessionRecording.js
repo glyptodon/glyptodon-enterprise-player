@@ -507,45 +507,41 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
 
             }
 
-            // Advance to frame index after current state
-            startIndex++;
-
-            var startTime = new Date().getTime();
+            var currentIndex = startIndex;
 
             // Replay any applicable incremental frames
             var continueReplay = function continueReplay() {
 
-                if (thisSeek.aborted)
-                    return;
-
-                if (startIndex <= index) {
-                    replayFrame(startIndex++, continueReplay);
+                // Finish seek early if aborted
+                if (thisSeek.aborted) {
+                    callback();
                     return;
                 }
 
-                // Current frame is now at requested index
-                currentFrame = startIndex - 1;
-
                 // Notify of changes in position
-                if (recording.onseek)
-                    recording.onseek(recording.getPosition());
+                if (recording.onseek && currentIndex > startIndex) {
+                    recording.onseek(recording.getPosition(),
+                        currentIndex - startIndex, index - startIndex);
+                }
 
-                // If the seek operation has not yet completed, schedule continuation
-                if (currentFrame !== index)
-                    seekToFrame(index, callback,
-                        Math.max(delay - (new Date().getTime() - startTime), 0));
+                // If frames remain, replay the next frame
+                if (currentIndex < index)
+                    replayFrame(++currentIndex, continueReplay);
 
-                // Notify that the requested seek has completed
-                else
+                // Otherwise, the seek operation is completed
+                else {
+                    currentFrame = currentIndex;
                     callback();
+                }
 
             };
 
-            if (!delay)
-                continueReplay();
-
-            else
+            // Continue replay after requested delay has elapsed, or
+            // immediately if no delay was requested
+            if (delay)
                 window.setTimeout(continueReplay, delay);
+            else
+                continueReplay();
 
         };
 
@@ -660,6 +656,16 @@ angular.module('player').factory('SessionRecording', [function defineSessionReco
          * @event
          * @param {Number} position
          *     The new position within the recording, in milliseconds.
+         *
+         * @param {Number} current
+         *     The number of frames that have been seeked through. If not
+         *     seeking through multiple frames due to a call to seek(), this
+         *     will be 1.
+         *
+         * @param {Number} total
+         *     The number of frames that are being seeked through in the
+         *     current seek operation. If not seeking through multiple frames
+         *     due to a call to seek(), this will be 1.
          */
         this.onseek = null;
 
