@@ -208,8 +208,16 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
             // restore the playback state at the time that request began and
             // begin seeking to the requested position
             if ($scope.recording && pendingSeekRequest) {
+
+                $scope.operationText = 'Seeking to the requested position. Please wait...';
+                $scope.operationProgress = 0;
+
                 resumeAfterSeekRequest && $scope.recording.play();
-                $scope.recording.seek($scope.playbackPosition);
+                $scope.recording.seek($scope.playbackPosition, function seekComplete() {
+                    $scope.operationText = null;
+                    $scope.$evalAsync();
+                });
+
             }
 
             // Flag seek request as completed
@@ -283,10 +291,15 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
 
                 // Notify listeners when current position within the recording
                 // has changed
-                $scope.recording.onseek = function positionChanged(position) {
+                $scope.recording.onseek = function positionChanged(position, current, total) {
 
+                    // Update current playback position while playing
                     if ($scope.recording.isPlaying())
                         $scope.playbackPosition = position;
+
+                    // Update seek progress while seeking
+                    else
+                        $scope.operationProgress = current / total;
 
                     $scope.$emit('glenPlayerSeek', position);
                     $scope.$evalAsync();
