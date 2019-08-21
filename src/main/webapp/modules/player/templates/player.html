@@ -14,11 +14,13 @@
 
     <!-- Play button -->
     <button class="glen-player-play"
+            title="Play"
             ng-click="recording.play()"
             ng-hide="recording.isPlaying()"><i class="fas fa-play"></i></button>
 
     <!-- Pause button -->
     <button class="glen-player-pause"
+            title="Pause"
             ng-click="recording.pause()"
             ng-show="recording.isPlaying()"><i class="fas fa-pause"></i></button>
 
