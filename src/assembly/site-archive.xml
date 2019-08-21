@@ -34,7 +34,7 @@
     <fileSets>
         <fileSet>
             <directory>${project.build.directory}/${project.build.finalName}</directory>
-            <outputDirectory>/</outputDirectory>
+            <outputDirectory></outputDirectory>
             <useDefaultExcludes>true</useDefaultExcludes>
         </fileSet>
     </fileSets>
