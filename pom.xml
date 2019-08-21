@@ -172,6 +172,9 @@
                         </goals>
                         <configuration>
                             <outputDirectory>${project.build.directory}/${project.build.finalName}</outputDirectory>
+                            <nonFilteredFileExtensions>
+                                <nonFilteredFileExtension>woff</nonFilteredFileExtension>
+                            </nonFilteredFileExtensions>
                             <resources>
                                 <resource>
                                     <directory>${basedir}/src/main/webapp</directory>
