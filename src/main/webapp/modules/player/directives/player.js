@@ -89,8 +89,22 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
          */
         $scope.playbackPosition = 0;
 
+        /**
+         * Human-readable text describing the operation currently running in
+         * the background, or null if no such operation is running.
+         *
+         * @type {String}
+         */
         $scope.operationText = null;
 
+        /**
+         * The current progress toward completion of the operation running in
+         * the background, where 0 represents no progress and 1 represents full
+         * completion. If no such operation is running, this value has no
+         * meaning.
+         *
+         * @type {Number}
+         */
         $scope.operationProgress = 0;
 
         /**
