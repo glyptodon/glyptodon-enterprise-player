@@ -28,6 +28,11 @@
  *     "glenPlayerLoading":
  *         A new recording has been selected and is now loading.
  *
+ *     "glenPlayerError":
+ *         The current recording cannot be loaded or played due to an error.
+ *         The recording may be unreadable (lack of permissions) or corrupt
+ *         (protocol error).
+ *
  *     "glenPlayerProgress"
  *         Additional data has been loaded for the current recording and the
  *         recording's duration has changed. The new duration in milliseconds
@@ -283,6 +288,13 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
                 $scope.recording.onload = function recordingLoaded() {
                     $scope.operationText = null;
                     $scope.$emit('glenPlayerLoaded');
+                    $scope.$evalAsync();
+                };
+
+                // Notify listeners if an error occurs
+                $scope.recording.onerror = function recordingFailed(message) {
+                    $scope.operationText = null;
+                    $scope.$emit('glenPlayerError', message);
                     $scope.$evalAsync();
                 };
 

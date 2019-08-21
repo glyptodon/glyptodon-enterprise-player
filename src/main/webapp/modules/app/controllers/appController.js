@@ -27,12 +27,37 @@
 angular.module('app').controller('appController', ['$scope', function appController($scope) {
 
     /**
+     * The currently selected recording, or null if no recording is selected.
+     *
+     * @type {Blob}
+     */
+    $scope.selectedRecording = null;
+
+    /**
      * Whether the session recording player within the application is currently
      * playing a recording.
      *
      * @type {Boolean}
      */
     $scope.playing = false;
+
+    /**
+     * Whether an error prevented the requested recording from being loaded.
+     *
+     * @type {Boolean}
+     */
+    $scope.error = false;
+
+    // Clear any errors if a new recording is loading
+    $scope.$on('glenPlayerLoading', function loadingStarted() {
+        $scope.error = false;
+    });
+
+    // Update error status if a failure occurs
+    $scope.$on('glenPlayerError', function recordingError() {
+        $scope.selectedRecording = null;
+        $scope.error = true;
+    });
 
     // Update playing/paused status when playback starts
     $scope.$on('glenPlayerPlay', function playbackStarted() {

@@ -68,8 +68,10 @@
 
 }
 
-.glen-player-app .glen-player-help-no-recording {
+.glen-player-app .glen-player-help-no-recording,
+.glen-player-app .glen-player-help-recording-error {
     margin: 8px;
+    max-width: 480px;
 }
 
 .glen-player-app .glen-player-recording-selector {
