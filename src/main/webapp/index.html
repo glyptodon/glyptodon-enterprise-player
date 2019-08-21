@@ -54,6 +54,13 @@
             <h1 ng-show="selectedRecording"
                 class="glen-player-selected-file"><i class="fas fa-film"></i>{{ selectedRecording.name }}</h1>
             <glen-file-chooser file="selectedRecording">
+                <div class="glen-welcome" ng-hide="selectedRecording || error">
+                    <h1>
+                        <img src="images/glyptodon.png" alt=".:_>">
+                        <span class="glyptodon">Glyptodon</span> Enterprise
+                    </h1>
+                    <h2>Session Recording Player</h2>
+                </div>
                 <p class="glen-player-help-no-recording"
                    ng-hide="selectedRecording || error">No session recording is
                 currently open. Please select a recording to view.</p>
