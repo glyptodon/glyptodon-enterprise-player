@@ -35,5 +35,6 @@
 <div class="glen-player-status" ng-show="operationText">
     <glen-player-progress-indicator progress="operationProgress"></glen-player-progress-indicator>
     <p>{{ operationText }}</p>
+    <button class="glen-player-button" ng-show="cancelOperation"
+            ng-click="cancelOperation()"><i class="fas fa-stop"></i> Cancel</button>
 </div>
-

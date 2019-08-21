@@ -108,6 +108,15 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
         $scope.operationProgress = 0;
 
         /**
+         * The position within the recording of the current seek operation, in
+         * milliseconds. If a seek request is not in progress, this will be
+         * null.
+         *
+         * @type {Number}
+         */
+        $scope.seekPosition = null;
+
+        /**
          * Whether a seek request is currently in progress. A seek request is
          * in progress if the user is attempting to change the current playback
          * position (the user is manipulating the playback position slider).
@@ -209,8 +218,16 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
             // begin seeking to the requested position
             if ($scope.recording && pendingSeekRequest) {
 
+                $scope.seekPosition = null;
                 $scope.operationText = 'Seeking to the requested position. Please wait...';
                 $scope.operationProgress = 0;
+
+                // Cancel seek when requested, updating playback position if
+                // that position changed
+                $scope.cancelOperation = function abortSeek() {
+                    $scope.recording.cancel();
+                    $scope.playbackPosition = $scope.seekPosition || $scope.playbackPosition;
+                };
 
                 resumeAfterSeekRequest && $scope.recording.play();
                 $scope.recording.seek($scope.playbackPosition, function seekComplete() {
@@ -298,17 +315,24 @@ angular.module('player').directive('glenPlayer', ['$injector', function glenPlay
                         $scope.playbackPosition = position;
 
                     // Update seek progress while seeking
-                    else
+                    else {
+                        $scope.seekPosition = position;
                         $scope.operationProgress = current / total;
+                    }
 
                     $scope.$emit('glenPlayerSeek', position);
                     $scope.$evalAsync();
 
                 };
 
-                // Begin loading new recording
                 $scope.operationText = 'Your recording is now being loaded. Please wait...';
                 $scope.operationProgress = 0;
+
+                $scope.cancelOperation = function abortLoad() {
+                    $scope.recording.abort();
+                    $scope.operationText = null;
+                };
+
                 $scope.$emit('glenPlayerLoading');
 
             }
